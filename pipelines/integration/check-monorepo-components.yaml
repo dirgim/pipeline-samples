@@ -1,0 +1,34 @@
+kind: Pipeline
+apiVersion: tekton.dev/v1
+metadata:
+  name: check-monorepo-components
+spec:
+  description: |
+    An integration test which uses the test-component-snapshot task to check 
+    if all components that belong to a monorepo have the same commit sha. 
+    It is meant to prevent incomplete Snapshots from being released upon pushing.
+  params:
+    - description: 'Snapshot of the application'
+      name: SNAPSHOT
+      default: '{"components": [{"name":"test-app", "containerImage": "quay.io/example/repo:latest"}]}'
+      type: string
+    - name: COMPONENTS_TO_CHECK
+      description: A space-separated list of components that will be considered for the check, other components will be ignored
+      default: ""
+      type: string
+  tasks:
+    - name: test-component-snapshot
+      params:
+        - name: SNAPSHOT
+          value: $(params.SNAPSHOT)
+        - name: COMPONENTS_TO_CHECK
+          value: $(params.COMPONENTS_TO_CHECK)
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/konflux-ci/integration-examples
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: tasks/test_component_snapshot.yaml
